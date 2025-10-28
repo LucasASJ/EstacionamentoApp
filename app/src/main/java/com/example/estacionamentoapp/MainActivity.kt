@@ -16,12 +16,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.launch
-
-// Importe suas classes de dados (Data Class)
 import com.example.estacionamentoapp.data.Vaga // Usaremos a classe Vaga
 import com.example.estacionamentoapp.data.RegistroSaida // Para resposta da operação
+import androidx.compose.material3.ExperimentalMaterial3Api // Para usar TopAppBar
+import kotlinx.coroutines.launch // <--- IMPORTAÇÃO CRUCIAL ADICIONADA AQUI
 
 // A CLASSE PRINCIPAL (ACTIVITY)
 class MainActivity : ComponentActivity() {
@@ -35,8 +33,8 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MaterialTheme {
-                // Chama a tela de visualização das Vagas
-                VagasScreen(activity = this)
+                // Chama o conteúdo principal que gerencia a navegação
+                MainContent(activity = this)
             }
         }
     }
@@ -45,10 +43,32 @@ class MainActivity : ComponentActivity() {
     val estController: EstacionamentoController get() = controller
 }
 
-
-// A FUNÇÃO COMPOSABLE QUE DEFINE A INTERFACE
+// ------------------------------------------------------------------
+// COMPONENTE PRINCIPAL (GERENCIADOR DE TELAS)
+// ------------------------------------------------------------------
 @Composable
-fun VagasScreen(activity: MainActivity) {
+fun MainContent(activity: MainActivity) {
+    val controller = remember { activity.estController }
+    var currentScreen by remember { mutableStateOf(Screen.VAGAS) }
+
+    // Função para navegar entre as telas
+    val onNavigateTo: (Screen) -> Unit = { screen ->
+        currentScreen = screen
+    }
+
+    when (currentScreen) {
+        Screen.VAGAS -> VagasScreen(activity, onNavigateTo)
+        Screen.MOTORISTAS -> MotoristaScreen(controller, onNavigateTo)
+    }
+}
+
+
+// ------------------------------------------------------------------
+// VAGAS SCREEN (TELA ORIGINAL)
+// ------------------------------------------------------------------
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun VagasScreen(activity: MainActivity, onNavigateTo: (Screen) -> Unit) {
 
     val controller = remember { activity.estController }
     val scope = rememberCoroutineScope()
@@ -58,10 +78,10 @@ fun VagasScreen(activity: MainActivity) {
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    // NOVO: Chave para forçar o recarregamento dos dados
+    // Chave para forçar o recarregamento dos dados
     var refreshKey by remember { mutableStateOf(0) }
 
-    // NOVO: Estado para exibir o Toast de sucesso
+    // Estado para exibir o Toast de sucesso
     var successMessage by remember { mutableStateOf<String?>(null) }
 
     // Função para buscar os dados da API
@@ -73,8 +93,8 @@ fun VagasScreen(activity: MainActivity) {
                 // Chama a API de forma assíncrona (GET /vagas)
                 vagas = controller.fetchVagas()
             } catch (e: Exception) {
-                // Mensagem de erro atualizada para refletir a porta 5000
-                error = "Erro de API: ${e.message}. Verifique sua API C# e o endereço http://10.0.2.2:5237/api/"
+                // Mensagem de erro atualizada para refletir a porta 5237 (sem /api/)
+                error = "Erro de API: ${e.message}. Verifique sua API C# e o endereço http://10.0.2.2:5237/"
             } finally {
                 isLoading = false
             }
@@ -92,50 +112,59 @@ fun VagasScreen(activity: MainActivity) {
         refreshKey++ // Altera a chave para forçar o LaunchedEffect a rodar novamente
     }
 
-    // Layout Principal
-    Column(modifier = Modifier.fillMaxSize()) {
-        Text(
-            text = "Status do Estacionamento",
-            fontWeight = FontWeight.Bold,
-            fontSize = 24.sp,
-            modifier = Modifier.padding(16.dp)
-        )
-
-        // Exibição dos Resultados (Estruturas de Desvio)
-        if (isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator() // Indicador de carregamento
-            }
-        } else if (error != null) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(error ?: "Erro desconhecido", color = Color.Red)
-            }
-        } else {
-            // LazyColumn para exibir a lista eficientemente
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(vagas) { vaga ->
-                    VagaItem(
-                        vaga = vaga,
-                        controller = controller,
-                        onActionSuccess = onRefresh // Passa o callback de refresh
-                    )
+    // Layout Principal usando Scaffold para a barra superior
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Status do Estacionamento") },
+                actions = {
+                    Button(onClick = { onNavigateTo(Screen.MOTORISTAS) }) {
+                        Text("Motoristas") // Botão para navegar para o CRUD
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(modifier = Modifier
+            .padding(padding)
+            .fillMaxSize()
+        ) {
+            // Exibição dos Resultados (Estruturas de Desvio)
+            if (isLoading) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator() // Indicador de carregamento
+                }
+            } else if (error != null) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(error ?: "Erro desconhecido", color = Color.Red, modifier = Modifier.padding(16.dp))
+                }
+            } else {
+                // LazyColumn para exibir a lista eficientemente
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(vagas) { vaga ->
+                        VagaItem(
+                            vaga = vaga,
+                            controller = controller,
+                            onActionSuccess = onRefresh // Passa o callback de refresh
+                        )
+                    }
                 }
             }
-        }
 
-        // Exibe uma mensagem de sucesso temporária
-        successMessage?.let { message ->
-            LaunchedEffect(message) {
-                kotlinx.coroutines.delay(2000)
-                successMessage = null
-            }
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.Green.copy(alpha = 0.8f))
-                    .padding(8.dp)
-            ) {
-                Text(text = message, color = Color.White, modifier = Modifier.align(Alignment.Center))
+            // Exibe uma mensagem de sucesso temporária
+            successMessage?.let { message ->
+                LaunchedEffect(message) {
+                    kotlinx.coroutines.delay(2000)
+                    successMessage = null
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.Green.copy(alpha = 0.8f))
+                        .padding(8.dp)
+                ) {
+                    Text(text = message, color = Color.White, modifier = Modifier.align(Alignment.Center))
+                }
             }
         }
     }
@@ -150,6 +179,7 @@ fun VagaItem(
 ) {
     // Para simplificar, usaremos um veiculoId fixo para o registro de entrada
     // Em uma tela real, este valor seria coletado via input do usuário.
+    // Usamos um ID de motorista/veículo existente no Seed Data
     val veiculoIdFixo = 1
 
     // Define a aparência com base no estado
@@ -194,6 +224,7 @@ fun VagaItem(
                                 val registroId = vaga.registroId
                                 if (registroId != null) {
                                     val result: RegistroSaida = controller.registrarSaida(registroId)
+                                    // A API C# precisa retornar o valor para que isso funcione
                                     val valor = result.valor?.let { "R$ %.2f".format(it) } ?: "Gratuito"
                                     onActionSuccess("Saída registrada. Valor: $valor")
                                 } else {
