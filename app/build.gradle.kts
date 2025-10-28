@@ -1,3 +1,4 @@
+// app/build.gradle.kts
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -6,8 +7,11 @@ plugins {
 
 android {
     namespace = "com.example.estacionamentoapp"
-    compileSdk {
-        version = release(36)
+    // CORRIGIDO: Sintaxe para compileSdk.
+    compileSdk = 36
+
+    defaultConfig {
+        applicationId = "com.example.estacionamentoapp"
     }
 
     defaultConfig {
