@@ -1,9 +1,10 @@
 package com.example.estacionamentoapp
 
-import com.example.estacionamentoapp.data.Motorista // NOVO: Importar Motorista
+import com.example.estacionamentoapp.data.Motorista
 import com.example.estacionamentoapp.data.Vaga
 import com.example.estacionamentoapp.data.RegistroEntrada
 import com.example.estacionamentoapp.data.RegistroSaida
+import com.example.estacionamentoapp.data.Veiculo // NOVO: Importar Veiculo
 import com.example.estacionamentoapp.network.RetrofitInstance
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -27,7 +28,7 @@ class EstacionamentoController {
         return withContext(Dispatchers.IO) { RetrofitInstance.api.registrarSaida(idRegistro) }
     }
 
-    // --- Operações de CRUD de Motorista (NOVO) ---
+    // --- Operações de CRUD de Motorista ---
 
     suspend fun fetchMotoristas(): List<Motorista> {
         return withContext(Dispatchers.IO) {
@@ -42,7 +43,6 @@ class EstacionamentoController {
     }
 
     suspend fun updateMotorista(motorista: Motorista) {
-        // Garantir que o ID não seja nulo antes de tentar atualizar
         val id = motorista.id ?: throw IllegalArgumentException("Motorista ID é necessário para atualização.")
         return withContext(Dispatchers.IO) {
             RetrofitInstance.api.updateMotorista(id, motorista)
@@ -52,6 +52,33 @@ class EstacionamentoController {
     suspend fun deleteMotorista(id: Int) {
         return withContext(Dispatchers.IO) {
             RetrofitInstance.api.deleteMotorista(id)
+        }
+    }
+
+    // --- NOVO: Operações de CRUD de Veículo ---
+
+    suspend fun fetchVeiculos(): List<Veiculo> {
+        return withContext(Dispatchers.IO) {
+            RetrofitInstance.api.getVeiculos()
+        }
+    }
+
+    suspend fun createVeiculo(veiculo: Veiculo): Veiculo {
+        return withContext(Dispatchers.IO) {
+            RetrofitInstance.api.createVeiculo(veiculo)
+        }
+    }
+
+    suspend fun updateVeiculo(veiculo: Veiculo) {
+        val id = veiculo.id ?: throw IllegalArgumentException("Veículo ID é necessário para atualização.")
+        return withContext(Dispatchers.IO) {
+            RetrofitInstance.api.updateVeiculo(id, veiculo)
+        }
+    }
+
+    suspend fun deleteVeiculo(id: Int) {
+        return withContext(Dispatchers.IO) {
+            RetrofitInstance.api.deleteVeiculo(id)
         }
     }
 }

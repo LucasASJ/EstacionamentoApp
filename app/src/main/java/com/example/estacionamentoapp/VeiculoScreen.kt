@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -14,29 +15,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.estacionamentoapp.data.Motorista
+import com.example.estacionamentoapp.data.Veiculo
 import kotlinx.coroutines.launch
-
-// Importa a anotação para silenciar o aviso sobre APIs experimentais
-import androidx.compose.material3.ExperimentalMaterial3Api
-
-// ATENÇÃO: O enum 'Screen' DEVE ser definido APENAS no MainActivity.kt
-// Removido o enum duplicado daqui para resolver o erro de compilação.
 
 // Adiciona a anotação OptIn para permitir o uso de TopAppBar e Scaffold
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MotoristaScreen(controller: EstacionamentoController, onNavigateTo: (Screen) -> Unit) {
+fun VeiculoScreen(controller: EstacionamentoController, onNavigateTo: (Screen) -> Unit) {
 
     val scope = rememberCoroutineScope()
-    var motoristas by remember { mutableStateOf(emptyList<Motorista>()) }
+    var veiculos by remember { mutableStateOf(emptyList<Veiculo>()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
-    var refreshKey by remember { mutableStateOf(0) }
+    var refreshKey by remember { mutableIntStateOf(0) }
     var showDialog by remember { mutableStateOf(false) }
-    var selectedMotorista by remember { mutableStateOf<Motorista?>(null) } // Motorista para edição ou null para criação
+    var selectedVeiculo by remember { mutableStateOf<Veiculo?>(null) } // Veiculo para edição ou null para criação
 
     // Função de recarregamento
     fun fetchData() {
@@ -44,9 +40,9 @@ fun MotoristaScreen(controller: EstacionamentoController, onNavigateTo: (Screen)
         error = null
         scope.launch {
             try {
-                motoristas = controller.fetchMotoristas()
+                veiculos = controller.fetchVeiculos()
             } catch (e: Exception) {
-                error = "Erro ao carregar motoristas: ${e.message}"
+                error = "Erro ao carregar veículos: ${e.message}"
             } finally {
                 isLoading = false
             }
@@ -61,27 +57,30 @@ fun MotoristaScreen(controller: EstacionamentoController, onNavigateTo: (Screen)
     // Callback para fechar o modal e forçar o refresh
     val onActionSuccess: (String) -> Unit = { message ->
         showDialog = false
-        selectedMotorista = null
+        selectedVeiculo = null
         refreshKey++ // Força o LaunchedEffect a buscar novos dados
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Gerenciar Motoristas (CRUD)") },
+                title = { Text("Gerenciar Veículos (CRUD)") },
                 actions = {
                     Button(onClick = { onNavigateTo(Screen.VAGAS) }) {
                         Text("Vagas")
+                    }
+                    Button(onClick = { onNavigateTo(Screen.MOTORISTAS) }) {
+                        Text("Motoristas")
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = {
-                selectedMotorista = null // Null para criar um novo
+                selectedVeiculo = null // Null para criar um novo
                 showDialog = true
             }) {
-                Icon(Icons.Filled.Add, contentDescription = "Adicionar Motorista")
+                Icon(Icons.Filled.Add, contentDescription = "Adicionar Veículo")
             }
         }
     ) { padding ->
@@ -100,22 +99,22 @@ fun MotoristaScreen(controller: EstacionamentoController, onNavigateTo: (Screen)
                     CircularProgressIndicator()
                 }
             } else {
-                // Lista de Motoristas
+                // Lista de Veículos
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(motoristas) { motorista ->
-                        MotoristaItem(
-                            motorista = motorista,
+                    items(veiculos) { veiculo ->
+                        VeiculoItem(
+                            veiculo = veiculo,
                             onEdit = {
-                                selectedMotorista = motorista
+                                selectedVeiculo = veiculo
                                 showDialog = true
                             },
                             onDelete = {
                                 scope.launch {
                                     try {
                                         // Garante que o ID não seja nulo antes de deletar
-                                        val idMotorista = it.id ?: throw IllegalArgumentException("ID do motorista ausente.")
-                                        controller.deleteMotorista(idMotorista)
-                                        onActionSuccess("Motorista ${it.nome} excluído.")
+                                        val idVeiculo = it.id ?: throw IllegalArgumentException("ID do veículo ausente.")
+                                        controller.deleteVeiculo(idVeiculo)
+                                        onActionSuccess("Veículo ${it.placa} excluído.")
                                     } catch (e: Exception) {
                                         onActionSuccess("Falha ao excluir: ${e.message}")
                                     }
@@ -130,39 +129,40 @@ fun MotoristaScreen(controller: EstacionamentoController, onNavigateTo: (Screen)
 
     // Modal de Criação/Edição (Uso do Dialog)
     if (showDialog) {
-        MotoristaFormDialog(
+        VeiculoFormDialog(
             controller = controller,
-            motoristaToEdit = selectedMotorista,
+            veiculoToEdit = selectedVeiculo,
             onDismiss = { showDialog = false },
             onSuccess = onActionSuccess
         )
     }
 }
 
-// Componente para exibir um único item Motorista
+// Componente para exibir um único item Veículo
 @Composable
-fun MotoristaItem(motorista: Motorista, onEdit: (Motorista) -> Unit, onDelete: (Motorista) -> Unit) {
+fun VeiculoItem(veiculo: Veiculo, onEdit: (Veiculo) -> Unit, onDelete: (Veiculo) -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clickable { onEdit(motorista) }
+            .clickable { onEdit(veiculo) }
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
-                Text(text = motorista.nome, fontWeight = FontWeight.Bold)
-                Text(text = "CPF: ${motorista.cpf}", fontSize = 12.sp, color = Color.Gray)
-                Text(text = "ID: ${motorista.id}", fontSize = 10.sp, color = Color.LightGray)
+                Text(text = "Placa: ${veiculo.placa}", fontWeight = FontWeight.Bold)
+                Text(text = "Modelo: ${veiculo.modelo}", fontSize = 12.sp, color = Color.Gray)
+                Text(text = "Motorista ID: ${veiculo.motoristaId}", fontSize = 10.sp, color = Color.LightGray)
+                Text(text = "ID: ${veiculo.id}", fontSize = 10.sp, color = Color.LightGray)
             }
             // Botão de Edição
-            IconButton(onClick = { onEdit(motorista) }) {
+            IconButton(onClick = { onEdit(veiculo) }) {
                 Icon(Icons.Filled.Edit, contentDescription = "Editar")
             }
             // Botão de Exclusão
-            IconButton(onClick = { onDelete(motorista) }) {
+            IconButton(onClick = { onDelete(veiculo) }) {
                 Icon(Icons.Filled.Delete, contentDescription = "Excluir", tint = Color.Red)
             }
         }
@@ -171,38 +171,48 @@ fun MotoristaItem(motorista: Motorista, onEdit: (Motorista) -> Unit, onDelete: (
 
 // Dialog para o Formulário de Criação e Edição
 @Composable
-fun MotoristaFormDialog(
+fun VeiculoFormDialog(
     controller: EstacionamentoController,
-    motoristaToEdit: Motorista?,
+    veiculoToEdit: Veiculo?,
     onDismiss: () -> Unit,
     onSuccess: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    var nome by remember { mutableStateOf(motoristaToEdit?.nome ?: "") }
-    var cpf by remember { mutableStateOf(motoristaToEdit?.cpf ?: "") }
+    var placa by remember { mutableStateOf(veiculoToEdit?.placa ?: "") }
+    var modelo by remember { mutableStateOf(veiculoToEdit?.modelo ?: "") }
+    var motoristaIdText by remember { mutableStateOf(veiculoToEdit?.motoristaId?.toString() ?: "") }
     var isSaving by remember { mutableStateOf(false) }
 
-    val isEditing = motoristaToEdit != null
-    val title = if (isEditing) "Editar Motorista (ID: ${motoristaToEdit?.id})" else "Adicionar Novo Motorista"
+    val isEditing = veiculoToEdit != null
+    val title = if (isEditing) "Editar Veículo (ID: ${veiculoToEdit?.id})" else "Adicionar Novo Veículo"
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                // Campo Nome
+                // Campo Placa
                 OutlinedTextField(
-                    value = nome,
-                    onValueChange = { nome = it },
-                    label = { Text("Nome") },
+                    value = placa,
+                    onValueChange = { placa = it },
+                    label = { Text("Placa") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                // Campo CPF
+                // Campo Modelo
                 OutlinedTextField(
-                    value = cpf,
-                    onValueChange = { cpf = it },
-                    label = { Text("CPF") },
+                    value = modelo,
+                    onValueChange = { modelo = it },
+                    label = { Text("Modelo") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                // Campo Motorista ID
+                OutlinedTextField(
+                    value = motoristaIdText,
+                    onValueChange = { motoristaIdText = it },
+                    label = { Text("ID do Motorista") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (isSaving) {
@@ -213,31 +223,38 @@ fun MotoristaFormDialog(
         confirmButton = {
             Button(
                 onClick = {
+                    val motoristaId = motoristaIdText.toIntOrNull()
+                    if (motoristaId == null) {
+                        onSuccess("Erro: ID do Motorista deve ser um número válido.")
+                        return@Button
+                    }
+
                     isSaving = true
                     scope.launch {
                         try {
-                            val novoMotorista = Motorista(
-                                id = motoristaToEdit?.id,
-                                nome = nome,
-                                cpf = cpf
+                            val novoVeiculo = Veiculo(
+                                id = veiculoToEdit?.id,
+                                placa = placa,
+                                modelo = modelo,
+                                motoristaId = motoristaId
                             )
                             if (isEditing) {
                                 // Update
-                                controller.updateMotorista(novoMotorista)
-                                onSuccess("Motorista ${novoMotorista.nome} atualizado.")
+                                controller.updateVeiculo(novoVeiculo)
+                                onSuccess("Veículo ${novoVeiculo.placa} atualizado.")
                             } else {
                                 // Create
-                                controller.createMotorista(novoMotorista)
-                                onSuccess("Motorista ${novoMotorista.nome} criado com sucesso.")
+                                controller.createVeiculo(novoVeiculo)
+                                onSuccess("Veículo ${novoVeiculo.placa} criado com sucesso.")
                             }
                         } catch (e: Exception) {
-                            onSuccess("Falha ao salvar: ${e.message}") // Usa onSuccess para exibir o erro como Toast
+                            onSuccess("Falha ao salvar: ${e.message}")
                         } finally {
                             isSaving = false
                         }
                     }
                 },
-                enabled = nome.isNotBlank() && cpf.isNotBlank() && !isSaving // Validação básica
+                enabled = placa.isNotBlank() && modelo.isNotBlank() && motoristaIdText.isNotBlank() && !isSaving
             ) {
                 Text(if (isEditing) "Salvar" else "Adicionar")
             }

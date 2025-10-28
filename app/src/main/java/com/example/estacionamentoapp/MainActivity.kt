@@ -19,7 +19,13 @@ import androidx.compose.ui.unit.sp
 import com.example.estacionamentoapp.data.Vaga // Usaremos a classe Vaga
 import com.example.estacionamentoapp.data.RegistroSaida // Para resposta da operação
 import androidx.compose.material3.ExperimentalMaterial3Api // Para usar TopAppBar
-import kotlinx.coroutines.launch // <--- IMPORTAÇÃO CRUCIAL ADICIONADA AQUI
+import kotlinx.coroutines.launch // <--- IMPORTAÇÃO CRUCIAL
+
+// Um enum para gerenciar as telas dentro da navegação principal
+// ATENÇÃO: ESTE ENUM DEVE ESTAR PRESENTE APENAS UMA VEZ NO PROJETO (AQUI).
+enum class Screen {
+    VAGAS, MOTORISTAS, VEICULOS // Os três estados de tela
+}
 
 // A CLASSE PRINCIPAL (ACTIVITY)
 class MainActivity : ComponentActivity() {
@@ -59,6 +65,7 @@ fun MainContent(activity: MainActivity) {
     when (currentScreen) {
         Screen.VAGAS -> VagasScreen(activity, onNavigateTo)
         Screen.MOTORISTAS -> MotoristaScreen(controller, onNavigateTo)
+        Screen.VEICULOS -> VeiculoScreen(controller, onNavigateTo) // Tela de Veículos
     }
 }
 
@@ -121,6 +128,10 @@ fun VagasScreen(activity: MainActivity, onNavigateTo: (Screen) -> Unit) {
                     Button(onClick = { onNavigateTo(Screen.MOTORISTAS) }) {
                         Text("Motoristas") // Botão para navegar para o CRUD
                     }
+                    Spacer(modifier = Modifier.width(8.dp)) // Espaçamento
+                    Button(onClick = { onNavigateTo(Screen.VEICULOS) }) {
+                        Text("Veículos") // NOVO: Botão para Veículos
+                    }
                 }
             )
         }
@@ -142,7 +153,7 @@ fun VagasScreen(activity: MainActivity, onNavigateTo: (Screen) -> Unit) {
                 // LazyColumn para exibir a lista eficientemente
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(vagas) { vaga ->
-                        VagaItem(
+                        VagaItem( // VagaItem agora é importado/definido externamente
                             vaga = vaga,
                             controller = controller,
                             onActionSuccess = onRefresh // Passa o callback de refresh
@@ -169,86 +180,4 @@ fun VagasScreen(activity: MainActivity, onNavigateTo: (Screen) -> Unit) {
         }
     }
 }
-
-// Componente Composable para exibir uma única vaga
-@Composable
-fun VagaItem(
-    vaga: Vaga,
-    controller: EstacionamentoController,
-    onActionSuccess: (String) -> Unit
-) {
-    // Para simplificar, usaremos um veiculoId fixo para o registro de entrada
-    // Em uma tela real, este valor seria coletado via input do usuário.
-    // Usamos um ID de motorista/veículo existente no Seed Data
-    val veiculoIdFixo = 1
-
-    // Define a aparência com base no estado
-    val status = if (vaga.ocupada) "OCUPADA" else "LIVRE"
-    val corFundo = if (vaga.ocupada) Color(0xFFFFCCCC) else Color(0xFFCCFFCC)
-    val corStatus = if (vaga.ocupada) Color.Red else Color.Green.copy(alpha = 0.6f)
-
-    val scope = rememberCoroutineScope()
-
-    // Card para agrupar o conteúdo
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-    ) {
-        // Row para alinhar horizontalmente
-        Row(
-            modifier = Modifier
-                .background(corFundo)
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Coluna de Informações
-            Column(Modifier.weight(1f)) {
-                Text(text = "Vaga: ${vaga.numero}", fontWeight = FontWeight.Bold)
-                Text(text = "Status: $status", color = corStatus)
-                // NOVO: Adicionar ID do registro e do veículo se estiver ocupada
-                if (vaga.ocupada) {
-                    Text(text = "Registro ID: ${vaga.registroId ?: "N/A"}", fontSize = 12.sp)
-                    Text(text = "Veículo ID: ${vaga.veiculoId ?: "N/A"}", fontSize = 12.sp)
-                }
-            }
-
-            // Botão de Ação
-            Button(
-                onClick = {
-                    scope.launch {
-                        try {
-                            if (vaga.ocupada) {
-                                // Ação de Saída: Requer o registroId
-                                val registroId = vaga.registroId
-                                if (registroId != null) {
-                                    val result: RegistroSaida = controller.registrarSaida(registroId)
-                                    // A API C# precisa retornar o valor para que isso funcione
-                                    val valor = result.valor?.let { "R$ %.2f".format(it) } ?: "Gratuito"
-                                    onActionSuccess("Saída registrada. Valor: $valor")
-                                } else {
-                                    // Adicionar tratamento de erro, pois o ID do registro está faltando
-                                    onActionSuccess("Erro: Vaga ocupada, mas ID do registro está faltando.")
-                                }
-
-                            } else {
-                                // Ação de Entrada: Requer veiculoId e o ID da vaga
-                                val result: RegistroSaida = controller.registrarEntrada(veiculoIdFixo, vaga.id)
-                                onActionSuccess("Entrada registrada! ID do Registro: ${result.id}")
-                            }
-                        } catch (e: Exception) {
-                            onActionSuccess("Falha na operação: ${e.message}")
-                        }
-                    }
-
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (vaga.ocupada) Color(0xFF990000) else Color(0xFF006400)
-                )
-            ) {
-                Text(if (vaga.ocupada) "Saída" else "Entrada")
-            }
-        }
-    }
-}
+// NOTA: A função VagaItem foi movida para o arquivo VagaItem.kt.
