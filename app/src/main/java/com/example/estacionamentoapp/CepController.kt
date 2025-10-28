@@ -2,19 +2,17 @@
 package com.example.estacionamentoapp
 
 import com.example.estacionamentoapp.network.RetrofitInstance
-import com.example.estacionamentoapp.data.Endereco // <--- AGORA FUNCIONA!
+import com.example.estacionamentoapp.data.Endereco
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+// Camada de Lógica/Controller (Inspirado no FeriadoController - Aula 19)
 class CepController {
 
-    // Esta função é 'suspend' porque faz uma chamada assíncrona (I/O)
-    // e usa o CEP como Path Parameter (Aula 20).
+    // Função suspend (assíncrona) que chama o serviço
     suspend fun buscarCep(cep: String): Endereco {
-        // Usa withContext(Dispatchers.IO) para garantir que a operação de rede
-        // ocorra em uma thread de I/O, evitando bloquear a UI (Aula 19).
+        // Usa Dispatchers.IO para a operação de rede (Aula 19)
         return withContext(Dispatchers.IO) {
-            // Chama o endpoint do serviço de CEP através do Retrofit
             RetrofitInstance.api.buscarEnderecoPorCep(cep)
         }
     }

@@ -1,10 +1,13 @@
 // MainActivity.kt (CÓDIGO FINAL COM CORREÇÕES E TELA CEP)
 package com.example.estacionamentoapp
 
+import androidx.compose.ui.text.input.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,22 +16,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.lifecycleScope // Importa o escopo de ciclo de vida
+import androidx.lifecycle.lifecycleScope // Permite o uso do lifecycleScope
 import kotlinx.coroutines.launch
 
-// Importa as classes que foram movidas/criadas no pacote (Data Class)
+// Importa as classes que foram movidas/criadas
 import com.example.estacionamentoapp.data.Endereco
+import com.example.estacionamentoapp.network.RetrofitInstance
 
 // A CLASSE PRINCIPAL (ACTIVITY) - Ponto de Entrada
 class MainActivity : ComponentActivity() {
 
     // 1. Instanciar o Controller (Lógica de Negócios)
-    private val controller = CepController()
+    val controller = CepController()
 
     /**
      * Função que inicia a chamada assíncrona da API usando o escopo da Activity (Aula 19).
      */
     fun iniciarBusca(cep: String, onResultado: (Endereco?) -> Unit, onError: (String) -> Unit) {
+        // Usa o lifecycleScope (o escopo de vida da Activity) para lançar a coroutine
         lifecycleScope.launch {
             try {
                 val endereco = controller.buscarCep(cep)
@@ -43,9 +48,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Define o conteúdo da tela principal (setContent - Aula 05)
         setContent {
             // Chama a tela Compose, passando 'this' (a Activity) como referência
-            // para que a tela possa chamar a função 'iniciarBusca'.
             MaterialTheme {
                 CepScreen(activity = this)
             }
@@ -58,9 +63,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun CepScreen(activity: MainActivity) {
 
-    // Usa o remember para persistir a instância do controller
+    // Acessa o Controller a partir da Activity (Aula 04 - Injeção de dependência simples)
     val controller = remember { activity.controller }
 
+    // Estados para gerenciar a UI (mutablesStateOf)
     var cepInput by remember { mutableStateOf("") }
     var endereco by remember { mutableStateOf<Endereco?>(null) }
     var isLoading by remember { mutableStateOf(false) }
@@ -84,7 +90,7 @@ fun CepScreen(activity: MainActivity) {
                 keyboardOptions = androidx.compose.ui.text.input.KeyboardOptions(
                     keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
                 ),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f) // Modificador para ocupar espaço (Aula 06)
             )
             Spacer(Modifier.width(8.dp))
 
@@ -143,4 +149,9 @@ fun CepScreen(activity: MainActivity) {
             Text("Aguardando busca de CEP.")
         }
     }
+}
+
+@Composable
+fun KeyboardOptions(keyboardType: KeyboardType) {
+    TODO("Not yet implemented")
 }
