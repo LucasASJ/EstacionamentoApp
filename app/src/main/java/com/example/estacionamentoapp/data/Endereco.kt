@@ -1,3 +1,6 @@
+// Endereco.kt
+package com.example.estacionamentoapp.data // <--- ESTA LINHA É ESSENCIAL!
+
 data class Endereco(
     val cep: String,
     val logradouro: String,

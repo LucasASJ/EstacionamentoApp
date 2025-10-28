@@ -1,9 +1,8 @@
+// CepController.kt
 package com.example.estacionamentoapp
 
-// CepController.kt
-
-import com.example.estacionamentoapp.network.RetrofitInstance // Importa o nosso Singleton de API
-import com.example.estacionamentoapp.data.Endereco // Importa o nosso modelo de dados
+import com.example.estacionamentoapp.network.RetrofitInstance
+import com.example.estacionamentoapp.data.Endereco // <--- AGORA FUNCIONA!
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
