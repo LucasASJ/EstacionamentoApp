@@ -1,132 +1,155 @@
-// com.example.estacionamentoapp/MainActivity.kt
-
+// MainActivity.kt (CÓDIGO FINAL DE ESTACIONAMENTO)
 package com.example.estacionamentoapp
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
-import com.example.estacionamentoapp.data.Endereco
 import kotlinx.coroutines.launch
 
+// Importe suas classes de dados (Data Class)
+import com.example.estacionamentoapp.data.Vaga // Usaremos a classe Vaga
 
+// A CLASSE PRINCIPAL (ACTIVITY)
 class MainActivity : ComponentActivity() {
 
-    val controller = CepController()
+    // 1. Instanciar o Controller (Lógica de Negócios)
+    private val controller = EstacionamentoController()
 
-    fun iniciarBusca(cep: String, onResultado: (Endereco?) -> Unit, onError: (String) -> Unit) {
-        lifecycleScope.launch {
-            try {
-                val endereco = controller.buscarCep(cep)
-                onResultado(endereco)
-            } catch (e: Exception) {
-                onError("CEP não encontrado ou erro de rede. Erro: ${e.message}")
-            }
-        }
-    }
-
+    // O PONTO DE ENTRADA DA ACTIVITY
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setContent {
             MaterialTheme {
-                CepScreen(activity = this)
+                // Chama a tela de visualização das Vagas
+                VagasScreen(activity = this)
+            }
+        }
+    }
+
+    // Expõe o Controller para que o Composable possa usá-lo
+    val estController: EstacionamentoController get() = controller
+}
+
+
+// A FUNÇÃO COMPOSABLE QUE DEFINE A INTERFACE
+@Composable
+fun VagasScreen(activity: MainActivity) {
+
+    // Acessa o Controller a partir da Activity (melhoria de arquitetura)
+    val controller = remember { activity.estController }
+
+    // Estados para gerenciar a lista de vagas e o carregamento
+    var vagas by remember { mutableStateOf(emptyList<Vaga>()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    // Lógica de Carregamento da API (Simulação do ciclo de vida)
+    LaunchedEffect(Unit) {
+        try {
+            // Chama a API de forma assíncrona (GET /vagas)
+            vagas = controller.fetchVagas()
+            isLoading = false
+        } catch (e: Exception) {
+            error = "Erro de API: ${e.message}. Verifique sua API C# e o endereço 10.0.2.2:5000."
+            isLoading = false
+        }
+    }
+
+    // Layout Principal
+    Column(modifier = Modifier.fillMaxSize()) {
+        Text(
+            text = "Status do Estacionamento",
+            fontWeight = FontWeight.Bold,
+            fontSize = 24.sp,
+            modifier = Modifier.padding(16.dp)
+        )
+
+        // Exibição dos Resultados (Estruturas de Desvio)
+        if (isLoading) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator() // Indicador de carregamento
+            }
+        } else if (error != null) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(error ?: "Erro desconhecido", color = Color.Red)
+            }
+        } else {
+            // LazyColumn para exibir a lista eficientemente (Aula 07)
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(vagas) { vaga ->
+                    VagaItem(vaga = vaga, controller = controller) // Renderiza um Card para cada vaga
+                }
             }
         }
     }
 }
 
-
+// Componente Composable para exibir uma única vaga
 @Composable
-fun CepScreen(activity: MainActivity) {
+fun VagaItem(vaga: Vaga, controller: EstacionamentoController) {
+    // Define a aparência com base no estado
+    val status = if (vaga.ocupada) "OCUPADA" else "LIVRE"
+    val corFundo = if (vaga.ocupada) Color(0xFFFFCCCC) else Color(0xFFCCFFCC) // Vermelho claro vs Verde claro
+    val corStatus = if (vaga.ocupada) Color.Red else Color.Green.copy(alpha = 0.6f) // Ou ajuste o alpha para escurecer
 
-    var cepInput by remember { mutableStateOf("") }
-    var endereco by remember { mutableStateOf<Endereco?>(null) }
-    var isLoading by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
 
-    Column(
+    // Card para agrupar o conteúdo (Aula 07)
+    Card(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
-        Text("Consulta de Endereço (ViaCEP)", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-        Spacer(Modifier.height(16.dp))
+        // Row para alinhar horizontalmente (Aula 06)
+        Row(
+            modifier = Modifier
+                .background(corFundo)
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Coluna de Informações
+            Column(Modifier.weight(1f)) {
+                Text(text = "Vaga: ${vaga.numero}", fontWeight = FontWeight.Bold) // LINHA CORRIGIDA
+                Text(text = "Status: $status", color = corStatus)
+                // TODO: Adicionar placa do veículo se estiver ocupada
+            }
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(
-                value = cepInput,
-                onValueChange = { cepInput = it.filter { char -> char.isDigit() }.take(8) },
-                label = { Text("Digite o CEP (apenas números)") },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Number
-                ),
-
-                modifier = Modifier.weight(1f)
-            )
-            Spacer(Modifier.width(8.dp))
-
+            // Botão de Ação
             Button(
                 onClick = {
-                    isLoading = true
-                    endereco = null
-                    error = null
-
-                    if (cepInput.length == 8) {
-                        activity.iniciarBusca(
-                            cep = cepInput,
-                            onResultado = { result ->
-                                endereco = result
-                                isLoading = false
-                            },
-                            onError = { errorMessage ->
-                                error = errorMessage
-                                isLoading = false
-                            }
-                        )
+                    // Implementar a lógica de navegação/ação aqui
+                    if (vaga.ocupada) {
+                        // Ação de Saída: PUT /registros/{id}/saida
+                        // Ação de Saída: PUT /registros/{id}/saida
+// CORREÇÃO: Use vaga.numero em vez de vaga.nome
+                        println("PUT Saída para Vaga ${vaga.numero}")
                     } else {
-                        error = "CEP deve ter 8 dígitos."
-                        isLoading = false
+// Ação de Entrada: POST /registros
+// CORREÇÃO: Use vaga.numero em vez de vaga.nome
+                        println("POST Entrada para Vaga ${vaga.numero}")
                     }
+
                 },
-                enabled = !isLoading && cepInput.length == 8
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (vaga.ocupada) Color(0xFF990000) else Color(0xFF006400)
+                )
             ) {
-                Text(if (isLoading) "Buscando..." else "Buscar")
+                Text(if (vaga.ocupada) "Saída" else "Entrada")
             }
-        }
-
-        Spacer(Modifier.height(24.dp))
-
-        // Exibição dos Resultados
-        if (isLoading) {
-            Text("Carregando...")
-        } else if (error != null) {
-            Text("ERRO: $error", color = Color.Red)
-        } else if (endereco != null) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Endereço Encontrado:", fontWeight = FontWeight.SemiBold)
-                    HorizontalDivider()
-                    Spacer(Modifier.height(8.dp))
-                    Text("CEP: ${endereco!!.cep}")
-                    Text("Logradouro: ${endereco!!.logradouro}")
-                    Text("Bairro: ${endereco!!.bairro}")
-                    Text("Cidade/UF: ${endereco!!.localidade} - ${endereco!!.uf}")
-                }
-            }
-        } else {
-            Text("Aguardando busca de CEP.")
         }
     }
 }

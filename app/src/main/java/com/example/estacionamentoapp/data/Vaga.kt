@@ -1,6 +1,12 @@
-data class Vaga(
+package com.example.estacionamentoapp.data
 
+/**
+ * Representa uma vaga de estacionamento.
+ * Os campos devem corresponder à resposta JSON da sua API.
+ */
+data class Vaga(
     val id: Int,
-    val nome: String, // Ex: "A1", "B5"
-    val ocupada: Boolean
+    val numero: String,
+    val ocupada: Boolean,
+    val tipo: String // Ex: "carro", "moto"
 )
