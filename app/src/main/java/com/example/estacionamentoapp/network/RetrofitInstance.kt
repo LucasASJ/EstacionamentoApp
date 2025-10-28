@@ -8,7 +8,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 // ATENÇÃO: Substitua "10.0.2.2" pelo IP do seu computador ou o endereço do seu servidor.
 // O IP "10.0.2.2" é um endereço especial que o emulador Android usa para
 // se conectar ao 'localhost' (127.0.0.1) da máquina onde ele está rodando.
-private const val BASE_URL_ESTACIONAMENTO = "http://10.0.2.2:5000/api/" // <-- CORRIGIDO: Porta 5000 para corresponder à mensagem de erro em MainActivity.kt
+private const val BASE_URL_ESTACIONAMENTO = "http://10.0.2.2:5237/api/"// <-- CORRIGIDO: Porta 5000 para corresponder à mensagem de erro em MainActivity.kt
 
 // Objeto Singleton para a instância do Retrofit
 object RetrofitInstance {

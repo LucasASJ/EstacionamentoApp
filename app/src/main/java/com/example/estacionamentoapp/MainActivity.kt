@@ -74,7 +74,7 @@ fun VagasScreen(activity: MainActivity) {
                 vagas = controller.fetchVagas()
             } catch (e: Exception) {
                 // Mensagem de erro atualizada para refletir a porta 5000
-                error = "Erro de API: ${e.message}. Verifique sua API C# e o endereço http://10.0.2.2:5000/api/"
+                error = "Erro de API: ${e.message}. Verifique sua API C# e o endereço http://10.0.2.2:5237/api/"
             } finally {
                 isLoading = false
             }

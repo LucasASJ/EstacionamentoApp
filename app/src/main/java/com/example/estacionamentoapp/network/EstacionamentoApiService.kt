@@ -6,28 +6,26 @@ import com.example.estacionamentoapp.data.Vaga
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT // Importe PUT
 import retrofit2.http.Path
 
 interface EstacionamentoApiService {
 
-    /**
-     * Busca a lista completa de vagas da API.
-     * Esta é a função que estava faltando.
-     */
-    @GET("vagas") // O endpoint da sua API para obter as vagas
+    @GET("vagas") // Deve ser exatamente "vagas"
     suspend fun getVagas(): List<Vaga>
 
     /**
-     * Registra a entrada de um veículo.
+     * CORREÇÃO DE ENTRADA: Usa POST para /registros
+     * (Igual ao app.MapPost("/registros", ...) do C#)
      */
-    @POST("entradas") // Endpoint de exemplo para registrar entrada
+    @POST("registros") // Rota corrigida
     suspend fun registrarEntrada(@Body entrada: RegistroEntrada): RegistroSaida
 
     /**
-     * Registra a saída de um veículo.
-     * O {id} é substituído pelo valor do parâmetro idRegistro.
+     * CORREÇÃO DE SAÍDA: Usa PUT para /registros/{id}/saida
+     * (Igual ao app.MapPut("/registros/{id}/saida", ...) do C#)
      */
-    @POST("saidas/{id}") // Endpoint de exemplo para registrar saída
+    @PUT("registros/{id}/saida") // Rota e método corrigidos
     suspend fun registrarSaida(@Path("id") idRegistro: Int): RegistroSaida
 
 }
