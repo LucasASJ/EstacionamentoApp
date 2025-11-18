@@ -28,7 +28,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 // Adiciona a anotação OptIn para permitir o uso de TopAppBar e Scaffold
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MotoristaScreen(controller: EstacionamentoController, onNavigateTo: (Screen) -> Unit) {
+fun MotoristaScreen(
+    controller: EstacionamentoController,
+    onNavigateTo: (Screen) -> Unit,
+    onBack: () -> Boolean
+) {
 
     val scope = rememberCoroutineScope()
     var motoristas by remember { mutableStateOf(emptyList<Motorista>()) }
